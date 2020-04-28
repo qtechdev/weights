@@ -2,73 +2,58 @@
 #include <iostream>
 
 #include "conv.hpp"
+#include "flags.h" // https://github.com/sailormoon/flags
 
 template <typename E>
 constexpr auto to_underlying(E e) noexcept {
   return static_cast<std::underlying_type_t<E>>(e);
 }
 
-enum class error_codes {
+enum class error_code_t {
   not_enough_args = 1,
   invalid_unit = 100,
   invalid_weight = 101
 };
 
-enum class units {
+enum class unit_t {
   kilograms,
   pounds,
   invalid
 };
 
 void show_usage(const std::string name) {
-  std::cout << "usage: " << name << " " << "<-l/-k> <weight>\n";
+  std::cout << "usage: " << name << " " << "<unit> <weight>\n";
 }
 
-units parse_unit(const std::string unit) {
-  if (unit.length() != 2) {
-    return units::invalid;
+int main(int argc, char *argv[]) {
+  const flags::args args(argc, argv);
+
+  bool unit_ok = false;
+  unit_t unit = unit_t::invalid;
+
+  const auto kilograms = args.get<double>("k");
+  if (kilograms) {
+    unit_ok = true;
+    unit = unit_t::kilograms;
+    std::cout << "kilograms: " << *kilograms << std::endl;
+    std::cout << *kilograms << " kg is equal to " << kg_to_lb(*kilograms) << " lb\n";
+    return 0;
   }
 
-  if (unit.compare(0, 1, "-") != 0) {
-    return units::invalid;
+  const auto pounds = args.get<double>("l");
+  if (pounds) {
+    unit_ok = true;
+    unit = unit_t::pounds;
+    std::cout << "pounds: " << *pounds << std::endl;
+    std::cout << *pounds << " lb is equal to " << lb_to_kg(*pounds) << " kg\n";
+    return 0;
   }
 
-  if (unit.compare(1, 1, "k") == 0) {
-    return units::kilograms;
-  } else if (unit.compare(1, 1, "l") == 0) {
-    return units::pounds;
+  if (!unit_ok) {
+    std::cerr << "invalid unit" << std::endl;
+    return to_underlying(error_code_t::invalid_unit);
   }
 
-  return units::invalid;
-}
-
-int main(int argc, const char *argv[]) {
-  if (argc < 3) {
-    show_usage(argv[0]);
-    return to_underlying(error_codes::not_enough_args);
-  }
-
-  units unit = parse_unit(argv[1]);
-  char *end;
-  double weight = std::strtod(argv[2], &end);
-
-  if (*end != '\0') {
-    std::cout << "invalid weight\n";
-    return to_underlying(error_codes::invalid_weight);
-  }
-
-  switch (unit) {
-    case units::kilograms:
-      std::cout << weight << " kg is equal to " << kg_to_lb(weight) << " lb\n";
-      break;
-    case units::pounds:
-      std::cout << weight << " lb is equal to " << lb_to_kg(weight) << " kg\n";
-      break;
-    case units::invalid: // fallthrough
-    default:
-      std::cout << "invalid unit\n";
-      return to_underlying(error_codes::invalid_unit);
-  }
 
   return 0;
 }
