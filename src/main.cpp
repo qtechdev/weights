@@ -12,7 +12,8 @@ constexpr auto to_underlying(E e) noexcept {
 enum class error_code_t {
   not_enough_args = 1,
   invalid_unit = 100,
-  invalid_weight = 101
+  invalid_weight = 101,
+  same_unit = 102,
 };
 
 enum class unit_t {
@@ -21,39 +22,73 @@ enum class unit_t {
   invalid
 };
 
+std::ostream& operator<<(std::ostream &os, const unit_t &u) {
+  switch (u) {
+    case unit_t::kilograms: os << "kilograms"; break;
+    case unit_t::pounds: os << "pounds"; break;
+    default: os << "invalid unit"; break;
+  }
+
+  return os;
+}
+
+std::istream& operator>>(std::istream &stream, unit_t &u) {
+  char unit;
+  stream >> unit;
+
+  switch (unit) {
+    case 'k': u = unit_t::kilograms; break;
+    case 'l': u = unit_t::pounds; break;
+    default: u = unit_t::invalid; break;
+  }
+
+  return stream;
+}
+
 void show_usage(const std::string name) {
-  std::cout << "usage: " << name << " " << "<unit> <weight>\n";
+  std::cout << "usage: " << name << " <-f unit> <-w weight> <-t unit>\n";
 }
 
 int main(int argc, char *argv[]) {
   const flags::args args(argc, argv);
 
-  bool unit_ok = false;
-  unit_t unit = unit_t::invalid;
+  const auto unit_1 = args.get<unit_t>("f");
+  const auto weight = args.get<double>("w");
+  const auto unit_2 = args.get<unit_t>("t");
 
-  const auto kilograms = args.get<double>("k");
-  if (kilograms) {
-    unit_ok = true;
-    unit = unit_t::kilograms;
-    std::cout << "kilograms: " << *kilograms << std::endl;
-    std::cout << *kilograms << " kg is equal to " << kg_to_lb(*kilograms) << " lb\n";
-    return 0;
+  if (!weight) {
+    show_usage(argv[0]);
+    return to_underlying(error_code_t::invalid_weight);
   }
 
-  const auto pounds = args.get<double>("l");
-  if (pounds) {
-    unit_ok = true;
-    unit = unit_t::pounds;
-    std::cout << "pounds: " << *pounds << std::endl;
-    std::cout << *pounds << " lb is equal to " << lb_to_kg(*pounds) << " kg\n";
-    return 0;
-  }
-
-  if (!unit_ok) {
-    std::cerr << "invalid unit" << std::endl;
+  if (!unit_1 || !unit_2) {
+    show_usage(argv[0]);
     return to_underlying(error_code_t::invalid_unit);
   }
 
+  if (unit_1 == unit_2) {
+    std::cerr << "Please specify two different units..." << std::endl;
+    return to_underlying(error_code_t::same_unit);
+  }
+
+  double new_weight = 0;
+
+  switch (*unit_1) {
+    case unit_t::kilograms:
+      switch (*unit_2) {
+        case unit_t::pounds: new_weight = kg_to_lb(*weight); break;
+      };
+      break;
+
+    case unit_t::pounds:
+      switch (*unit_2) {
+        case unit_t::kilograms: new_weight = lb_to_kg(*weight); break;
+      };
+      break;
+  }
+
+  std::cout << *weight << " " << *unit_1 << " is approcimately equal to ";
+  std::cout << new_weight << " " << *unit_2 << std::endl;
 
   return 0;
 }
