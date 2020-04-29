@@ -19,6 +19,7 @@ enum class error_code_t {
 enum class unit_t {
   kilograms,
   pounds,
+  stone,
   invalid
 };
 
@@ -26,6 +27,7 @@ std::ostream& operator<<(std::ostream &os, const unit_t &u) {
   switch (u) {
     case unit_t::kilograms: os << "kilograms"; break;
     case unit_t::pounds: os << "pounds"; break;
+    case unit_t::stone: os << "stone"; break;
     default: os << "invalid unit"; break;
   }
 
@@ -39,6 +41,7 @@ std::istream& operator>>(std::istream &stream, unit_t &u) {
   switch (unit) {
     case 'k': u = unit_t::kilograms; break;
     case 'l': u = unit_t::pounds; break;
+    case 's': u = unit_t::stone; break;
     default: u = unit_t::invalid; break;
   }
 
@@ -77,12 +80,19 @@ int main(int argc, char *argv[]) {
     case unit_t::kilograms:
       switch (*unit_2) {
         case unit_t::pounds: new_weight = kg_to_lb(*weight); break;
+        case unit_t::stone: new_weight = kg_to_st(*weight); break;
       };
       break;
-
     case unit_t::pounds:
       switch (*unit_2) {
         case unit_t::kilograms: new_weight = lb_to_kg(*weight); break;
+        case unit_t::stone: new_weight = lb_to_st(*weight); break;
+      };
+      break;
+    case unit_t::stone:
+      switch (*unit_2) {
+        case unit_t::kilograms: new_weight = st_to_kg(*weight); break;
+        case unit_t::pounds: new_weight = st_to_lb(*weight); break;
       };
       break;
   }
