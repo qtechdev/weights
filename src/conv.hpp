@@ -1,13 +1,15 @@
 #ifndef __CONV_HPP__
 #define __CONV_HPP__
 
-double kg_to_lb(const double kg);
-double kg_to_st(const double kg);
+#include "units.hpp"
 
-double lb_to_kg(const double lb);
-double lb_to_st(const double lb);
+pound_t kg_to_lb(const kilogram_t kg);
+stone_t kg_to_st(const kilogram_t kg);
 
-double st_to_kg(const double st);
-double st_to_lb(const double st);
+kilogram_t lb_to_kg(const pound_t lb);
+stone_t lb_to_st(const pound_t lb);
+
+kilogram_t st_to_kg(const stone_t st);
+pound_t st_to_lb(const stone_t st);
 
 #endif // __CONV_HPP__

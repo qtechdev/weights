@@ -1,7 +1,9 @@
-#include <type_traits>
 #include <iostream>
+#include <optional>
+#include <type_traits>
 
 #include "conv.hpp"
+#include "units.hpp"
 #include "flags.h" // https://github.com/sailormoon/flags
 
 template <typename E>
@@ -16,56 +18,51 @@ enum class error_code_t {
   same_unit = 102,
 };
 
-enum class unit_t {
-  kilograms,
-  pounds,
-  stone,
-  invalid
-};
-
-std::ostream& operator<<(std::ostream &os, const unit_t &u) {
-  switch (u) {
-    case unit_t::kilograms: os << "kilograms"; break;
-    case unit_t::pounds: os << "pounds"; break;
-    case unit_t::stone: os << "stone"; break;
-    default: os << "invalid unit"; break;
-  }
-
-  return os;
-}
-
-std::istream& operator>>(std::istream &stream, unit_t &u) {
-  char unit;
-  stream >> unit;
-
-  switch (unit) {
-    case 'k': u = unit_t::kilograms; break;
-    case 'l': u = unit_t::pounds; break;
-    case 's': u = unit_t::stone; break;
-    default: u = unit_t::invalid; break;
-  }
-
-  return stream;
-}
-
 void show_usage(const std::string name) {
   std::cout << "usage: " << name << " <-f unit> <-w weight> <-t unit>\n";
+}
+
+std::optional<weight_t> f(std::optional<unit_t> u, std::optional<double> w) {
+  if (!u || !w) {
+    return std::nullopt;
+  }
+
+  switch (*u) {
+    case unit_t::kilograms: return kilogram_t(*w);
+    case unit_t::pounds: return pound_t(*w);
+    case unit_t::stone: return stone_t(*w);
+  }
+
+  return std::nullopt;
 }
 
 int main(int argc, char *argv[]) {
   const flags::args args(argc, argv);
 
+  const auto help = args.get<bool>("h") || args.get<bool>("help");
+
+  if (help) {
+    show_usage(argv[0]);
+    return 0;
+  }
+
   const auto unit_1 = args.get<unit_t>("f");
   const auto weight = args.get<double>("w");
   const auto unit_2 = args.get<unit_t>("t");
 
-  if (!weight) {
+  if (!weight || !unit_1 || !unit_2) {
     show_usage(argv[0]);
+    return to_underlying(error_code_t::not_enough_args);
+
+  }
+
+  if (!weight) {
+    std::cerr << "invalid weight" << std::endl;
     return to_underlying(error_code_t::invalid_weight);
   }
 
   if (!unit_1 || !unit_2) {
-    show_usage(argv[0]);
+    std::cerr << "invalid unit" << std::endl;
     return to_underlying(error_code_t::invalid_unit);
   }
 
@@ -74,31 +71,32 @@ int main(int argc, char *argv[]) {
     return to_underlying(error_code_t::same_unit);
   }
 
-  double new_weight = 0;
+  const auto weight_1 = f(unit_1, weight);
+  weight_t weight_2;
 
   switch (*unit_1) {
     case unit_t::kilograms:
       switch (*unit_2) {
-        case unit_t::pounds: new_weight = kg_to_lb(*weight); break;
-        case unit_t::stone: new_weight = kg_to_st(*weight); break;
+        case unit_t::pounds: weight_2 = kg_to_lb(*weight); break;
+        case unit_t::stone: weight_2 = kg_to_st(*weight); break;
       };
       break;
     case unit_t::pounds:
       switch (*unit_2) {
-        case unit_t::kilograms: new_weight = lb_to_kg(*weight); break;
-        case unit_t::stone: new_weight = lb_to_st(*weight); break;
+        case unit_t::kilograms: weight_2 = lb_to_kg(*weight); break;
+        case unit_t::stone: weight_2 = lb_to_st(*weight); break;
       };
       break;
     case unit_t::stone:
       switch (*unit_2) {
-        case unit_t::kilograms: new_weight = st_to_kg(*weight); break;
-        case unit_t::pounds: new_weight = st_to_lb(*weight); break;
+        case unit_t::kilograms: weight_2 = st_to_kg(*weight); break;
+        case unit_t::pounds: weight_2 = st_to_lb(*weight); break;
       };
       break;
   }
 
-  std::cout << *weight << " " << *unit_1 << " is approcimately equal to ";
-  std::cout << new_weight << " " << *unit_2 << std::endl;
+  std::cout << *weight_1 << " is approximately equal to " << weight_2;
+  std::cout << std::endl;
 
   return 0;
 }
