@@ -1,4 +1,7 @@
 #include <iostream>
+#include <vector>
+
+#include "conv.hpp"
 
 #include "units.hpp"
 
@@ -27,11 +30,25 @@ std::istream& operator>>(std::istream &stream, unit_t &u) {
   return stream;
 }
 
-std::ostream &operator<<(std::ostream &os, const weight_t &w) {
-  for (int i = 0; i < w.count; i++) {
-    os << w.values[i] << " " << w.units[i];
+weight_t::weight_t(const std::vector<double> v, const unit_t &u) {
+  values = v;
+  unit = u;
+}
 
-    if (i != w.count) {
+std::ostream &operator<<(std::ostream &os, const weight_t &w) {
+  std::vector<std::string> units;
+  switch (w.unit) {
+    case unit_t::kilograms: units = {"kg"}; break;
+    case unit_t::pounds: units = {"lb"}; break;
+    case unit_t::stone: units = {"st", "lb"}; break;
+    default: units = {"invalid unit"}; break;
+  }
+  int count = units.size();
+
+  for (int i = 0; i < count; i++) {
+    os << w.values[i] << " " << units[i];
+
+    if (i != count) {
       os << " ";
     }
 
@@ -39,28 +56,91 @@ std::ostream &operator<<(std::ostream &os, const weight_t &w) {
   return os;
 }
 
+/* kilogram_t ****************************************************************/
 kilogram_t::kilogram_t(const double kg) {
   values.push_back(kg);
-  units.push_back("kg");
+  unit = unit_t::kilograms;
 }
 
+kilogram_t::kilogram_t(const std::vector<double> &vec) {
+  values = vec;
+  unit = unit_t::kilograms;
+}
+
+kilogram_t::kilogram_t(const weight_t &w) {
+  switch (w.unit) {
+    case unit_t::kilograms: *this = kilogram_t(w.values); break;
+    case unit_t::pounds: *this = pound_t(w.values); break;
+    case unit_t::stone: *this = stone_t(w.values); break;
+    default: values = {0}; unit = unit_t::invalid; break;
+  }
+}
+
+kilogram_t::kilogram_t(const pound_t &lb) {
+  *this = lb_to_kg(lb);
+}
+kilogram_t::kilogram_t(const stone_t &st) {
+  *this = st_to_kg(st);
+}
+
+/* pound_t *******************************************************************/
 pound_t::pound_t(const double lb) {
   values.push_back(lb);
-  units.push_back("lb");
+  unit = unit_t::pounds;
 }
 
+pound_t::pound_t(const std::vector<double> &vec) {
+  values = vec;
+  unit = unit_t::pounds;
+}
+
+pound_t::pound_t(const weight_t &w) {
+  switch (w.unit) {
+    case unit_t::kilograms: *this = kilogram_t(w.values); break;
+    case unit_t::pounds: *this = pound_t(w.values); break;
+    case unit_t::stone: *this = stone_t(w.values); break;
+    default: values = {0}; unit = unit_t::invalid; break;
+  }
+}
+
+pound_t::pound_t(const kilogram_t &kg) {
+  *this = kg_to_lb(kg);
+}
+pound_t::pound_t(const stone_t &st) {
+  *this = st_to_lb(st);
+}
+
+/* stone_t *******************************************************************/
 stone_t::stone_t(const double st) {
-  count = 2;
   int x = st;
   values.push_back(x);
   values.push_back((st - x) * 14);
-  units.push_back("st");
-  units.push_back("lb");
+  unit = unit_t::stone;
 }
+
 stone_t::stone_t(const int st, const double lb) {
-  count = 2;
   values.push_back(st);
   values.push_back(lb);
-  units.push_back("st");
-  units.push_back("lb");
+  unit = unit_t::stone;
+}
+
+stone_t::stone_t(const std::vector<double> &vec) {
+  values = vec;
+  unit = unit_t::stone;
+}
+
+stone_t::stone_t(const weight_t &w) {
+  switch (w.unit) {
+    case unit_t::kilograms: *this = kilogram_t(w.values); break;
+    case unit_t::pounds: *this = pound_t(w.values); break;
+    case unit_t::stone: *this = stone_t(w.values); break;
+    default: values = {0}; unit = unit_t::invalid; break;
+  }
+}
+
+stone_t::stone_t(const kilogram_t &kg) {
+  *this = kg_to_st(kg);
+}
+stone_t::stone_t(const pound_t &lb) {
+  *this = lb_to_st(lb);
 }

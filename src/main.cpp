@@ -13,6 +13,7 @@ constexpr auto to_underlying(E e) noexcept {
 
 enum class error_code_t {
   not_enough_args = 1,
+  too_many_args = 2,
   invalid_unit = 100,
   invalid_weight = 101,
   same_unit = 102,
@@ -22,18 +23,17 @@ void show_usage(const std::string name) {
   std::cout << "usage: " << name << " <-f unit> <-w weight> <-t unit>\n";
 }
 
-std::optional<weight_t> f(std::optional<unit_t> u, std::optional<double> w) {
-  if (!u || !w) {
-    return std::nullopt;
+std::istream &operator>>(std::istream &stream, weight_t &w) {
+  double d;
+  while (stream >> d) {
+    w.values.push_back(d);
   }
 
-  switch (*u) {
-    case unit_t::kilograms: return kilogram_t(*w);
-    case unit_t::pounds: return pound_t(*w);
-    case unit_t::stone: return stone_t(*w);
+  if (w.values.size() >= 1) {
+    stream.clear();
   }
 
-  return std::nullopt;
+  return stream;
 }
 
 int main(int argc, char *argv[]) {
@@ -46,56 +46,46 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  const auto unit_1 = args.get<unit_t>("f");
-  const auto weight = args.get<double>("w");
-  const auto unit_2 = args.get<unit_t>("t");
+  const auto _unit_1 = args.get<unit_t>("f");
+  const auto _weight = args.get<weight_t>("w");
+  const auto _unit_2 = args.get<unit_t>("t");
+  const auto &positional = args.positional();
 
-  if (!weight || !unit_1 || !unit_2) {
+  if (!_weight || !_unit_1 || !_unit_2) {
     show_usage(argv[0]);
     return to_underlying(error_code_t::not_enough_args);
-
   }
 
-  if (!weight) {
+  if (!_weight) {
     std::cerr << "invalid weight" << std::endl;
     return to_underlying(error_code_t::invalid_weight);
   }
 
-  if (!unit_1 || !unit_2) {
+  if (!_unit_1 || !_unit_2) {
     std::cerr << "invalid unit" << std::endl;
     return to_underlying(error_code_t::invalid_unit);
   }
 
-  if (unit_1 == unit_2) {
+  if (_unit_1 == _unit_2) {
     std::cerr << "Please specify two different units..." << std::endl;
     return to_underlying(error_code_t::same_unit);
   }
 
-  const auto weight_1 = f(unit_1, weight);
-  weight_t weight_2;
-
-  switch (*unit_1) {
-    case unit_t::kilograms:
-      switch (*unit_2) {
-        case unit_t::pounds: weight_2 = kg_to_lb(*weight); break;
-        case unit_t::stone: weight_2 = kg_to_st(*weight); break;
-      };
-      break;
-    case unit_t::pounds:
-      switch (*unit_2) {
-        case unit_t::kilograms: weight_2 = lb_to_kg(*weight); break;
-        case unit_t::stone: weight_2 = lb_to_st(*weight); break;
-      };
-      break;
-    case unit_t::stone:
-      switch (*unit_2) {
-        case unit_t::kilograms: weight_2 = st_to_kg(*weight); break;
-        case unit_t::pounds: weight_2 = st_to_lb(*weight); break;
-      };
-      break;
+  if (positional.size() > 0) {
+    std::cerr << "extra arguments; please quote weights with multiple units";
+    std::cerr << std::endl;
+    return to_underlying(error_code_t::too_many_args);
   }
 
-  std::cout << *weight_1 << " is approximately equal to " << weight_2;
+  weight_t weight = *_weight;
+  weight.unit = *_unit_1;
+
+  std::cout << weight << " is approximately equal to ";
+  switch (*_unit_2) {
+    case unit_t::kilograms: std::cout << kilogram_t(weight); break;
+    case unit_t::pounds: std::cout << pound_t(weight); break;
+    case unit_t::stone: std::cout << stone_t(weight); break;
+  }
   std::cout << std::endl;
 
   return 0;
