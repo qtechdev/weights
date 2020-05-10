@@ -1,10 +1,14 @@
 #include <iostream>
+#include <cstdio>
 #include <optional>
 #include <type_traits>
+#include "text.hpp"
 
 #include "conv.hpp"
 #include "units.hpp"
 #include "flags.h" // https://github.com/sailormoon/flags
+
+Messages msg = en();
 
 template <typename E>
 constexpr auto to_underlying(E e) noexcept {
@@ -20,7 +24,10 @@ enum class error_code_t {
 };
 
 void show_usage(const std::string name) {
-  std::cout << "usage: " << name << " <-f unit> <-w weight> <-t unit>\n";
+  char buf[100];
+  int n = std::snprintf(buf, 100, msg.usage.c_str(), name.c_str());
+  std::snprintf(buf+n, 100-n, "\n");
+  std::cerr << buf;
 }
 
 std::istream &operator>>(std::istream &stream, weight_t &w) {
@@ -51,36 +58,50 @@ int main(int argc, char *argv[]) {
   const auto _unit_2 = args.get<unit_t>("t");
   const auto &positional = args.positional();
 
-  if (!_weight || !_unit_1 || !_unit_2) {
-    show_usage(argv[0]);
+  if (!(_weight && _unit_1 && _unit_2)) {
+    char buf[100];
+    int n = std::snprintf(buf, 100, msg.not_enough_args.c_str());
+    std::snprintf(buf+n, 100-n, "\n");
+    std::cerr << buf;
     return to_underlying(error_code_t::not_enough_args);
   }
 
   if (!_weight) {
-    std::cerr << "invalid weight" << std::endl;
+    char buf[100];
+    int n = std::snprintf(buf, 100, msg.invalid_weight.c_str());
+    std::snprintf(buf+n, 100-n, "\n");
+    std::cerr << buf;
     return to_underlying(error_code_t::invalid_weight);
   }
 
   if (!_unit_1 || !_unit_2) {
-    std::cerr << "invalid unit" << std::endl;
+    char buf[100];
+    int n = std::snprintf(buf, 100, msg.invalid_unit.c_str());
+    std::snprintf(buf+n, 100-n, "\n");
+    std::cerr << buf;
     return to_underlying(error_code_t::invalid_unit);
   }
 
   if (_unit_1 == _unit_2) {
-    std::cerr << "Please specify two different units..." << std::endl;
+    char buf[100];
+    int n = std::snprintf(buf, 100, msg.same_unit.c_str());
+    std::snprintf(buf+n, 100-n, "\n");
+    std::cerr << buf;
     return to_underlying(error_code_t::same_unit);
   }
 
   if (positional.size() > 0) {
-    std::cerr << "extra arguments; please quote weights with multiple units";
-    std::cerr << std::endl;
+    char buf[100];
+    int n = std::snprintf(buf, 100, msg.too_many_args.c_str());
+    std::snprintf(buf+n, 100-n, "\n");
+    std::cerr << buf;
     return to_underlying(error_code_t::too_many_args);
   }
 
   weight_t weight = *_weight;
   weight.unit = *_unit_1;
 
-  std::cout << weight << " is approximately equal to ";
+  std::cout << weight << msg.is_equal_to;
   switch (*_unit_2) {
     case unit_t::kilograms: std::cout << kilogram_t(weight); break;
     case unit_t::pounds: std::cout << pound_t(weight); break;

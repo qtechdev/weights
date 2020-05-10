@@ -2,15 +2,18 @@
 #include <vector>
 
 #include "conv.hpp"
+#include "text.hpp"
 
 #include "units.hpp"
 
+extern Messages msg;
+
 std::ostream& operator<<(std::ostream &os, const unit_t &u) {
   switch (u) {
-    case unit_t::kilograms: os << "kilograms"; break;
-    case unit_t::pounds: os << "pounds"; break;
-    case unit_t::stone: os << "stone"; break;
-    default: os << "invalid unit"; break;
+    case unit_t::kilograms: os << msg.kg_full; break;
+    case unit_t::pounds: os << msg.lb_full; break;
+    case unit_t::stone: os << msg.st_full; break;
+    default: os << msg.invalid_unit; break;
   }
 
   return os;
@@ -38,17 +41,17 @@ weight_t::weight_t(const std::vector<double> v, const unit_t &u) {
 std::ostream &operator<<(std::ostream &os, const weight_t &w) {
   std::vector<std::string> units;
   switch (w.unit) {
-    case unit_t::kilograms: units = {"kg"}; break;
-    case unit_t::pounds: units = {"lb"}; break;
-    case unit_t::stone: units = {"st", "lb"}; break;
-    default: units = {"invalid unit"}; break;
+    case unit_t::kilograms: units = {msg.kg_abbr}; break;
+    case unit_t::pounds: units = {msg.lb_abbr}; break;
+    case unit_t::stone: units = {msg.st_abbr, msg.lb_abbr}; break;
+    default: units = {msg.invalid_unit}; break;
   }
   int count = units.size();
 
   for (int i = 0; i < count; i++) {
     os << w.values[i] << " " << units[i];
 
-    if (i != count) {
+    if (i != (count - 1)) {
       os << " ";
     }
 
