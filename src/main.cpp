@@ -106,6 +106,8 @@ int main(int argc, char *argv[]) {
     case unit_t::kilograms: std::cout << kilogram_t(weight); break;
     case unit_t::pounds: std::cout << pound_t(weight); break;
     case unit_t::stone: std::cout << stone_t(weight); break;
+    case unit_t::invalid:
+    default: std::cout << "[invalid unit]"; break;
   }
   std::cout << std::endl;
 
