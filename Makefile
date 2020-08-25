@@ -1,33 +1,43 @@
+SOURCES=$(wildcard src/*.cpp)
+OBJECTS=$(patsubst src/%,build/%,${SOURCES:.cpp=.o})
+DIRS=$(sort $(dir ${OBJECTS}))
+
 CXX=g++
-CXX_FLAGS=-std=c++17 -I./include/
 LD_FLAGS=
-
-BUILD_DIR=build/
-OUTPUT_DIR=out/
-
-SUBDIRS=$(patsubst src/%,%,$(dir $(wildcard src/*/)))
-BUILD_DIRS=${BUILD_DIR} $(addprefix ${BUILD_DIR},${SUBDIRS})
-
-
-CXX_SOURCES=$(wildcard src/*.cpp)  $(wildcard src/*/*.cpp)
-CXX_OBJECTS=$(patsubst src/%,${BUILD_DIR}%,${CXX_SOURCES:.cpp=.o})
+CXX_FLAGS=-std=c++17 -Wall -Wextra -pedantic -I./include
 
 NAME=weights
-BINARY=${OUTPUT_DIR}${NAME}
+BINARY=out/${NAME}
+
+ifdef DEBUG
+CXX_FLAGS += -g -DDEBUG
+endif
+ifndef DEBUG
+CXX_FLAGS += -O2
+endif
 
 all: dirs ${BINARY}
 
-${BINARY}: ${CC_OBJECTS} ${CXX_OBJECTS}
-	${CXX} ${LD_FLAGS} -o $@ $^
+${BINARY}: ${OBJECTS}
+	${CXX} $^ ${LD_FLAGS} -o $@
 
-${BUILD_DIR}%.o: src/%.cpp
-	${CXX} ${CXX_FLAGS} -o $@ -c $<
+build/%.o: src/%.cpp
+	${CXX} $< ${CXX_FLAGS} -c -o $@
 
 .PHONY: dirs
 dirs:
-	mkdir -p ${OUTPUT_DIR}
-	mkdir -p ${BUILD_DIRS}
+	mkdir -p ${DIRS}
+	mkdir -p out/
 
 .PHONY: clean
 clean:
-	-rm -r ${BUILD_DIR}
+	-rm -r build/
+	-rm -r out/
+
+.PHONY: install
+install:
+	cp -r ${BINARY} /usr/local/bin
+	mkdir -p /usr/local/share/${NAME}
+	cp -r data/* /usr/local/share/${NAME}
+	cp app.desktop /usr/local/share/applications/${NAME}.desktop
+	cp icon.png /usr/local/share/icons/${NAME}.png
